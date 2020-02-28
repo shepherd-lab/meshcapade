@@ -1,0 +1,16 @@
+{
+  "name": "meshcapade",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^13.7.6",
+    "jtree": "^49.6.1",
+    "superagent": "^5.2.2"
+  }
+}

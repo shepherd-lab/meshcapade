@@ -1,0 +1,17 @@
+#!/usr/bin/env ts-node
+
+const { Meshcapade } = require("./Meshcapade")
+
+const testAll = async () => {
+  const token =
+    "eyJraWQiOiJRbG96MDRyUVI1MGsrd1kreDdZRXBjU29xZVRSdkVKb1ZjdWRONnZRSDhjPSIsImFsZyI6IlJTMjU2In0.eyJhdF9oYXNoIjoidXZWTWF4YUs0UUlQQUpLc0wyUElMdyIsInN1YiI6IjY5OGYxM2EwLTNhOGEtNDUxYS04NjIzLTJmMjhiMDEzYmFjNCIsImF1ZCI6IjdsbzAzNzd2c2EyZHUyY3FiNWRrbTM3OGNuIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImV2ZW50X2lkIjoiZTk3N2ZjZDUtMDFkMS00YzNkLTg2NjItMmU1M2JiYzgyMjIzIiwidG9rZW5fdXNlIjoiaWQiLCJhdXRoX3RpbWUiOjE1ODI4NTc1OTcsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC5ldS1jZW50cmFsLTEuYW1hem9uYXdzLmNvbVwvZXUtY2VudHJhbC0xX2NlU0lxMmxTTCIsImNvZ25pdG86dXNlcm5hbWUiOiJTUkxib2R5Y29tcGxhYiIsImV4cCI6MTU4Mjg2MTE5NywiaWF0IjoxNTgyODU3NTk3LCJlbWFpbCI6ImpvaG5zaGVwQGhhd2FpaS5lZHUifQ.jndS9a5qNx2Hq7bZkVgHSNuC8BZ0nUrsGVpJRb7BPZlDdBYTcU4o8rNv52Fa5xQ6VXqmkWLIw-zn5nAjLPsuiAfZNlj-NzOEXo-6osjPvsHp22u9ZNuV_238oXKi4u3pmTRqBPepotoYzYTsZ4vwMu1BPY-2SsJDdWvgfbHnPlh3Avdl999g4hPxmf1r5UMLAlSGPmMgzFy0EDFB47SL8nno2gtoL-7HYEera-8ZIvegTL56WuTirTIpV3Oggf2Ec_inbTd7edkPbqEOMeJdfcfB88BV2eM08XLwaRTnFSENdu2fyPgTS10IYpZL4eGb2H31wX2wfcjF6oV7xSEVyA"
+  const username = "SRLbodycomplab"
+  const filePath = `meshes/Pose1_Lean_back.obj`
+  const outPutFilePath = `meshes/Pose1_Lean_back-output.obj`
+  const options = { gender: "female" }
+
+  const session = new Meshcapade(username, token)
+  const result = await session.align(filePath, outPutFilePath, options)
+}
+
+testAll()
