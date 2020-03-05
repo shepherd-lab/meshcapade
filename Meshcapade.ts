@@ -2,6 +2,7 @@ const superagent = require("superagent")
 const { jtree } = require("jtree")
 const { Disk } = require("jtree/products/Disk.node.js")
 const util = require("util")
+const moment = require("moment")
 const exec = util.promisify(require("child_process").exec)
 
 declare type gender = "male" | "female"
@@ -67,7 +68,7 @@ class Meshcapade {
       throw new Error(`Get a token first from ${this.loginUrl}`)
     }
     this.token = token
-    this._jobId = jtree.Utils.getFileName(filePath) + "-" + Date.now().toString()
+    this._jobId = jtree.Utils.getFileName(filePath) + "-" + moment().format("MMM-D-YYYY-h.mm.ssa")
     this._print(`If authorization expires you can get a new token here: ${this.loginUrl}`)
   }
 
@@ -188,7 +189,7 @@ class Meshcapade {
 
   async awaitUntilReady(asset_id: string, sub_id: string): Promise<StatusResponse> {
     let statusResponse = await this.checkStatus(asset_id, sub_id)
-    const sleepDuration = 10
+    const sleepDuration = 60
     let attempt = 1
     while (!statusResponse.download) {
       this._print(`Alignment not ready. Sleeping for ${sleepDuration} seconds.`)

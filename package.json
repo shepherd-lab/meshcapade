@@ -11,6 +11,7 @@
   "dependencies": {
     "@types/node": "^13.7.6",
     "jtree": "^49.6.1",
+    "moment": "^2.24.0",
     "superagent": "^5.2.2"
   }
 }
