@@ -172,7 +172,7 @@ class Meshcapade {
   }
 
   async downloadResult(url: url, outputFilePath: filePath) {
-    this._print(`Downloading Result`)
+    this._print(`Downloading '${url}'`)
     const command = `curl -sXGET "${url}" >> ${outputFilePath}`
     const { stdout, stderr } = await exec(command)
     if (this._logging) {
@@ -198,6 +198,45 @@ class Meshcapade {
       attempt++
     }
     return statusResponse
+  }
+
+  static makeJobsFile() {
+    const done = {}
+    Disk.dir("meshes").forEach(file => {
+      if (file.includes(".output.obj")) {
+        done[file.replace(".output.obj", "")] = true
+      } else {
+        if (!done[file]) done[file] = false
+      }
+    })
+    Disk.write(
+      "jobs.ssv",
+      `filename status\n` +
+        Object.keys(done)
+          .map(key => key + " " + done[key])
+          .join("\n")
+    )
+  }
+
+  getJobInProgressForThisFile(fileName: string): AlignmentResponse | undefined {
+    // todo: cleanup
+    const folder = Disk.dir("logs").find(folder => folder.startsWith(fileName))
+    if (folder)
+      // todo: cleanup
+      return JSON.parse(JSON.parse(new jtree.TreeNode(Disk.read(`logs/${folder}/requestAlignment.tree`)).getNode("POST RESPONSE").childrenToString()).text)
+  }
+
+  async checkExistingJobOrStartNewAlignment(filePath: filePath, outPutFilePath: filePath, options: AlignmentOptions) {
+    const pendingJobInfo = this.getJobInProgressForThisFile(jtree.Utils.getFileName(filePath))
+    if (pendingJobInfo) {
+      this._print(`Existing request found for '${filePath}'. Checking status...`)
+      const statusResponse = await this.checkStatus(pendingJobInfo.asset_id, pendingJobInfo.sub_id)
+      const downloadResponse = await this.downloadResult(statusResponse.download.url, outPutFilePath)
+      return downloadResponse
+    } else {
+      this._print(`No request found for '${filePath}'. Starting new job...`)
+      return this.align(filePath, outPutFilePath, options)
+    }
   }
 
   async align(filePath: filePath, outPutFilePath: filePath, options: AlignmentOptions) {
