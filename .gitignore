@@ -1,5 +1,5 @@
 lib/
-logs/
 node_modules/
-meshes/
 ignore/
+inputs/*.obj
+outputs/*.obj

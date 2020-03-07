@@ -1,0 +1,26 @@
+{
+  "body_measurements": {
+    "gender": "female",
+    "units": "cm",
+    "measurements": {
+      "Neck circumference at base": 41.96,
+      "Waist circumference (preferred)": 79.83,
+      "Waist height (preferred)": 100.83,
+      "Hip height": 81,
+      "Arm length (shoulder to elbow)": 31.72,
+      "Shoulder breadth": 42.6,
+      "Chest circumference at scye": 91.05,
+      "Crotch length": 68.2,
+      "Arm length (shoulder to wrist)": 58.81,
+      "Foot length": 23.92,
+      "Hip circumference": 105.08,
+      "Inseam": 75.97,
+      "Ankle circumference": 24.01,
+      "Thigh circumference": 60.38,
+      "Arm circumference at scye": 38.9,
+      "Height": 164.69,
+      "Chest circumference at maximum": 96.12,
+      "Arm length (spine to wrist)": 78.08
+    }
+  }
+}

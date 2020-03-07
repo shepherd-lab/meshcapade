@@ -1,9 +1,18 @@
 const superagent = require("superagent")
-const { jtree } = require("jtree")
-const { Disk } = require("jtree/products/Disk.node.js")
+const fs = require("fs")
 const util = require("util")
-const moment = require("moment")
 const exec = util.promisify(require("child_process").exec)
+const mkdirp = require("mkdirp")
+
+const getFileName = (path: string) => {
+  const parts = path.split("/") // todo: change for windows?
+  return parts.pop()
+}
+
+const write = (path: string, content: string) => fs.writeFileSync(path, content, "utf8")
+const read = (path: string) => fs.readFileSync(path, "utf8")
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+const readDir = (dir: string) => fs.readdirSync(dir).filter((file: string) => file !== ".DS_Store")
 
 declare type gender = "male" | "female"
 
@@ -68,7 +77,7 @@ class Meshcapade {
       throw new Error(`Get a token first from ${this.loginUrl}`)
     }
     this.token = token
-    this._jobId = jtree.Utils.getFileName(filePath) + "-" + moment().format("MMM-D-YYYY-h.mm.ssa")
+    this._jobId = getFileName(filePath)
     this._print(`If authorization expires you can get a new token here: ${this.loginUrl}`)
   }
 
@@ -82,11 +91,11 @@ class Meshcapade {
     if (this.verbose) console.log(message)
   }
 
-  private _log(step: string, message: string) {
+  private _log(step: string, obj: Object) {
     const folder = `logs/${this._jobId}`
-    if (!Disk.exists(folder)) Disk.mkdir(folder)
+    if (!fs.existsSync(folder)) mkdirp.sync(folder)
 
-    Disk.write(`${folder}/${step}.tree`, message)
+    write(`${folder}/${step}.json`, JSON.stringify(obj, undefined, 2))
   }
 
   async _post(url: url, body: any, step: string) {
@@ -96,14 +105,7 @@ class Meshcapade {
       .set("Authorization", this.token)
       .set("Content-Type", "application/json")
 
-    if (this._logging) {
-      const logMessage = new jtree.TreeNode(`POST ${url}
- REQUEST
-  {body}
- RESPONSE
-  {response}`).templateToString({ url, body: JSON.stringify(body, null, 2), response: JSON.stringify(response, null, 2) })
-      this._log(step, logMessage)
-    }
+    if (this._logging) this._log(step, { post: url, request: body, response })
     return response
   }
 
@@ -113,17 +115,12 @@ class Meshcapade {
       .set("Authorization", this.token)
       .set("Content-Type", "application/json")
 
-    if (this._logging) {
-      const logMessage = new jtree.TreeNode(`GET ${url}
- RESPONSE
-  {response}`).templateToString({ url, response: JSON.stringify(response, null, 2) })
-      this._log(step, logMessage)
-    }
+    if (this._logging) this._log(step, { get: url, response })
     return response
   }
 
   async createAsset(filePath: filePath): Promise<CreateAssetResponse> {
-    const filename = jtree.Utils.getFileName(filePath)
+    const filename = getFileName(filePath)
     this._print(`Creating asset`)
     const res = await this._post(
       "/asset",
@@ -139,15 +136,7 @@ class Meshcapade {
     this._print(`Uploading asset`)
     const command = `curl -sXPUT --upload-file ${filePath} "${signedPutUrl}"`
     const { stdout, stderr } = await exec(command)
-    if (this._logging) {
-      const logMessage = new jtree.TreeNode(`PUT ${signedPutUrl}
- FILE {filePath}
- stderr
-  {stderr}
- stdout
-  {stdout}`).templateToString({ stderr, stdout, filePath })
-      this._log("uploadAsset", logMessage)
-    }
+    if (this._logging) this._log("uploadAsset", { put: signedPutUrl, FILE: filePath, stderr, stdout })
     return {}
   }
 
@@ -163,11 +152,11 @@ class Meshcapade {
     return JSON.parse(res.text)
   }
 
-  async checkStatus(assetId: assetId, sub_id: string, attempt = 1): Promise<StatusResponse> {
+  async checkStatus(assetId: assetId, sub_id: string): Promise<StatusResponse> {
     this._print(`Checking Status`)
-    const res = await this._get(`/asset/${assetId}/${sub_id}`, `checkStatus-${attempt}`)
+    const res = await this._get(`/asset/${assetId}/${sub_id}`, `checkStatus`)
     const parsed = JSON.parse(res.text)
-    if (parsed.state === "error") throw new Error(`Error: checkStatus attempt ${attempt}: ${parsed.message}`)
+    if (parsed.state === "error") throw new Error(`Error: checkStatus: ${parsed.message}`)
     return parsed
   }
 
@@ -175,59 +164,51 @@ class Meshcapade {
     this._print(`Downloading '${url}'`)
     const command = `curl -sXGET "${url}" >> ${outputFilePath}`
     const { stdout, stderr } = await exec(command)
-    if (this._logging) {
-      const logMessage = new jtree.TreeNode(`GET ${url}
- FILE {url}
- stderr
-  {stderr}
- stdout
-  {stdout}`).templateToString({ stderr, stdout, url })
-      this._log("downloadResult", logMessage)
-    }
+    if (this._logging) this._log("downloadResult", { GET: url, FILE: url, stderr, stdout })
     return {}
   }
 
   async awaitUntilReady(asset_id: string, sub_id: string): Promise<StatusResponse> {
     let statusResponse = await this.checkStatus(asset_id, sub_id)
     const sleepDuration = 60
-    let attempt = 1
     while (!statusResponse.download) {
       this._print(`Alignment not ready. Sleeping for ${sleepDuration} seconds.`)
-      await Disk.sleep(sleepDuration * 1000)
-      statusResponse = await this.checkStatus(asset_id, sub_id, attempt)
-      attempt++
+      await sleep(sleepDuration * 1000)
+      statusResponse = await this.checkStatus(asset_id, sub_id)
     }
     return statusResponse
   }
 
-  static makeJobsFile() {
-    const done = {}
-    Disk.dir("meshes").forEach(file => {
-      if (file.includes(".output.obj")) {
-        done[file.replace(".output.obj", "")] = true
-      } else {
-        if (!done[file]) done[file] = false
-      }
-    })
-    Disk.write(
-      "jobs.ssv",
-      `filename status\n` +
-        Object.keys(done)
-          .map(key => key + " " + done[key])
-          .join("\n")
-    )
+  private _getJobInProgressForThisFile(fileName: string): AlignmentResponse | undefined {
+    // todo: cleanup
+    const folder = readDir("logs").find(folder => folder === fileName)
+    if (folder)
+      // todo: FIX the below line.
+      return JSON.parse(read(`logs/${folder}/requestAlignment.json`)).POST.RESPONSE.text
   }
 
-  getJobInProgressForThisFile(fileName: string): AlignmentResponse | undefined {
-    // todo: cleanup
-    const folder = Disk.dir("logs").find(folder => folder.startsWith(fileName))
-    if (folder)
-      // todo: cleanup
-      return JSON.parse(JSON.parse(new jtree.TreeNode(Disk.read(`logs/${folder}/requestAlignment.tree`)).getNode("POST RESPONSE").childrenToString()).text)
+  private _extractInfoFromCheckStatusResponseToDisk(fileName: string, outPutFilePath: string) {
+    const infoPath = outPutFilePath + ".info.json"
+    if (fs.existsSync(infoPath)) return undefined
+    // todo: FIX the below line.
+    const info = JSON.parse(read(`logs/${fileName}/checkStatus.json`).GET.RESPONSE).text.info
+    write(infoPath, JSON.stringify(info, undefined, 2))
+    this._print(`Saving info for '${fileName}'`)
   }
 
   async checkExistingJobOrStartNewAlignment(filePath: filePath, outPutFilePath: filePath, options: AlignmentOptions) {
-    const pendingJobInfo = this.getJobInProgressForThisFile(jtree.Utils.getFileName(filePath))
+    const fileName = getFileName(filePath)
+    if (fs.existsSync(outPutFilePath)) {
+      this._print(`Output file found for '${filePath}'.`)
+      try {
+        this._extractInfoFromCheckStatusResponseToDisk(fileName, outPutFilePath)
+      } catch (err) {
+        console.log(`Error getting info for "${outPutFilePath}"`)
+      }
+      return undefined
+    }
+
+    const pendingJobInfo = this._getJobInProgressForThisFile(fileName)
     if (pendingJobInfo) {
       this._print(`Existing request found for '${filePath}'. Checking status...`)
       const statusResponse = await this.checkStatus(pendingJobInfo.asset_id, pendingJobInfo.sub_id)
