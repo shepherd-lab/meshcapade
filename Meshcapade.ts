@@ -180,20 +180,18 @@ class Meshcapade {
   }
 
   private _getJobInProgressForThisFile(fileName: string): AlignmentResponse | undefined {
-    // todo: cleanup
     const folder = readDir("logs").find(folder => folder === fileName)
-    if (folder)
-      // todo: FIX the below line.
-      return JSON.parse(read(`logs/${folder}/requestAlignment.json`)).POST.RESPONSE.text
+    const alignmentPath = `logs/${folder}/requestAlignment.json`
+    if (folder && fs.existsSync(alignmentPath)) return JSON.parse(JSON.parse(read(alignmentPath)).response.text)
   }
 
   private _extractInfoFromCheckStatusResponseToDisk(fileName: string, outPutFilePath: string) {
     const infoPath = outPutFilePath + ".info.json"
     if (fs.existsSync(infoPath)) return undefined
-    // todo: FIX the below line.
-    const info = JSON.parse(read(`logs/${fileName}/checkStatus.json`).GET.RESPONSE).text.info
+    const info = JSON.parse(JSON.parse(read(`logs/${fileName}/checkStatus.json`)).response.text).info
     write(infoPath, JSON.stringify(info, undefined, 2))
     this._print(`Saving info for '${fileName}'`)
+    this._print(`Appending info to '${fileName}'`)
   }
 
   async checkExistingJobOrStartNewAlignment(filePath: filePath, outPutFilePath: filePath, options: AlignmentOptions) {
@@ -203,6 +201,7 @@ class Meshcapade {
       try {
         this._extractInfoFromCheckStatusResponseToDisk(fileName, outPutFilePath)
       } catch (err) {
+        console.log(err)
         console.log(`Error getting info for "${outPutFilePath}"`)
       }
       return undefined
@@ -218,6 +217,30 @@ class Meshcapade {
       this._print(`No request found for '${filePath}'. Starting new job...`)
       return this.align(filePath, outPutFilePath, options)
     }
+  }
+
+  static concatOutputFiles(folder: filePath, destination: filePath) {
+    const rows = readDir(folder)
+      .filter(file => file.endsWith(".json"))
+      .map(fileName => {
+        let obj
+        const id = fileName.replace(".output.obj.info.json", "")
+        try {
+          obj = JSON.parse(read(folder + fileName))
+          const newObj = obj.body_measurements.measurements
+          newObj.id = id
+          newObj.gender = obj.body_measurements.gender
+          newObj.units = obj.body_measurements.units
+          return newObj
+        } catch (err) {
+          console.log(`Error with '${fileName}'`)
+          console.log(err)
+          return {
+            id
+          }
+        }
+      })
+    write(destination, JSON.stringify(rows))
   }
 
   async align(filePath: filePath, outPutFilePath: filePath, options: AlignmentOptions) {
