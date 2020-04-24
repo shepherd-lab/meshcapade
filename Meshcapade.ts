@@ -11,7 +11,7 @@ const getFileName = (path: string) => {
 
 const write = (path: string, content: string) => fs.writeFileSync(path, content, "utf8")
 const read = (path: string) => fs.readFileSync(path, "utf8")
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 const readDir = (dir: string) => fs.readdirSync(dir).filter((file: string) => file !== ".DS_Store")
 
 declare type gender = "male" | "female"
@@ -125,7 +125,7 @@ class Meshcapade {
     const res = await this._post(
       "/asset",
       {
-        filename
+        filename,
       },
       "createAsset"
     )
@@ -180,7 +180,7 @@ class Meshcapade {
   }
 
   private _getJobInProgressForThisFile(fileName: string): AlignmentResponse | undefined {
-    const folder = readDir("logs").find(folder => folder === fileName)
+    const folder = readDir("logs").find((folder) => folder === fileName)
     const alignmentPath = `logs/${folder}/requestAlignment.json`
     if (folder && fs.existsSync(alignmentPath)) return JSON.parse(JSON.parse(read(alignmentPath)).response.text)
   }
@@ -210,7 +210,7 @@ class Meshcapade {
     const pendingJobInfo = this._getJobInProgressForThisFile(fileName)
     if (pendingJobInfo) {
       this._print(`Existing request found for '${filePath}'. Checking status...`)
-      const statusResponse = await this.checkStatus(pendingJobInfo.asset_id, pendingJobInfo.sub_id)
+      const statusResponse = await this.awaitUntilReady(pendingJobInfo.asset_id, pendingJobInfo.sub_id)
       const downloadResponse = await this.downloadResult(statusResponse.download.url, outPutFilePath)
       return downloadResponse
     } else {
@@ -219,10 +219,30 @@ class Meshcapade {
     }
   }
 
+  static async runBatch(batchFolderName: string) {
+    const username = "SRLbodycomplab"
+    const options = require(`${batchFolderName}/options`)
+
+    const inputFolder = `${batchFolderName}/inputs`
+
+    const results = fs
+      .readdirSync(inputFolder)
+      .filter((filePath) => filePath.endsWith(".ply"))
+      .map((filePath) => {
+        const inputFilePath = `${inputFolder}/${filePath}`
+        const outPutFilePath = `${batchFolderName}/outputs/${filePath}.output.obj`
+        const session = new Meshcapade(username, authorizationResponse.token, inputFilePath)
+        return session.checkExistingJobOrStartNewAlignment(inputFilePath, outPutFilePath, options)
+      })
+
+    await Promise.all(results)
+    Meshcapade.concatOutputFiles(`${batchFolderName}`, "results.json")
+  }
+
   static concatOutputFiles(folder: filePath, destination: filePath) {
     const rows = readDir(folder)
-      .filter(file => file.endsWith(".json"))
-      .map(fileName => {
+      .filter((file) => file.endsWith(".json"))
+      .map((fileName) => {
         let obj
         const id = fileName.replace(".output.obj.info.json", "")
         try {
@@ -236,7 +256,7 @@ class Meshcapade {
           console.log(`Error with '${fileName}'`)
           console.log(err)
           return {
-            id
+            id,
           }
         }
       })
