@@ -72,17 +72,19 @@ interface StatusResponse {
 }
 
 class Meshcapade {
-  constructor(username: username, token: token, filePath: string) {
+  constructor(username: username, token: token, filePath: string, batchFolderName: string) {
     if (!token) {
       throw new Error(`Get a token first from ${this.loginUrl}`)
     }
     this.token = token
+    this._batchFolderName = batchFolderName
     this._jobId = getFileName(filePath)
     this._print(`If authorization expires you can get a new token here: ${this.loginUrl}`)
   }
 
   public token: string
   private _jobId: string
+  private _batchFolderName: string
   public rootUrl = "https://api-eu.meshcapade.com/ganymede-beta"
   public loginUrl = "https://meshcapade.com/login/eu.html"
   private verbose = true
@@ -92,7 +94,7 @@ class Meshcapade {
   }
 
   private _log(step: string, obj: Object) {
-    const folder = `logs/${this._jobId}`
+    const folder = `${this._logsDir}/${this._jobId}`
     if (!fs.existsSync(folder)) mkdirp.sync(folder)
 
     write(`${folder}/${step}.json`, JSON.stringify(obj, undefined, 2))
@@ -179,16 +181,20 @@ class Meshcapade {
     return statusResponse
   }
 
+  private get _logsDir() {
+    return `${this._batchFolderName}/logs/`
+  }
+
   private _getJobInProgressForThisFile(fileName: string): AlignmentResponse | undefined {
-    const folder = readDir("logs").find((folder) => folder === fileName)
-    const alignmentPath = `logs/${folder}/requestAlignment.json`
+    const folder = readDir(this._logsDir).find((folder) => folder === fileName)
+    const alignmentPath = `${this._logsDir}${folder}/requestAlignment.json`
     if (folder && fs.existsSync(alignmentPath)) return JSON.parse(JSON.parse(read(alignmentPath)).response.text)
   }
 
   private _extractInfoFromCheckStatusResponseToDisk(fileName: string, outPutFilePath: string) {
     const infoPath = outPutFilePath + ".info.json"
     if (fs.existsSync(infoPath)) return undefined
-    const info = JSON.parse(JSON.parse(read(`logs/${fileName}/checkStatus.json`)).response.text).info
+    const info = JSON.parse(JSON.parse(read(`${this._logsDir}/${fileName}/checkStatus.json`)).response.text).info
     write(infoPath, JSON.stringify(info, undefined, 2))
     this._print(`Saving info for '${fileName}'`)
     this._print(`Appending info to '${fileName}'`)
@@ -219,7 +225,8 @@ class Meshcapade {
     }
   }
 
-  static async runBatch(batchFolderName: string) {
+  static async runBatch(batchFolderName: string, authorizationResponse: any) {
+    batchFolderName = batchFolderName.endsWith("/") ? batchFolderName.substr(0, batchFolderName.length - 1) : batchFolderName
     const username = "SRLbodycomplab"
     const options = require(`${batchFolderName}/options`)
 
@@ -231,7 +238,7 @@ class Meshcapade {
       .map((filePath) => {
         const inputFilePath = `${inputFolder}/${filePath}`
         const outPutFilePath = `${batchFolderName}/outputs/${filePath}.output.obj`
-        const session = new Meshcapade(username, authorizationResponse.token, inputFilePath)
+        const session = new Meshcapade(username, authorizationResponse.token, inputFilePath, batchFolderName)
         return session.checkExistingJobOrStartNewAlignment(inputFilePath, outPutFilePath, options)
       })
 
