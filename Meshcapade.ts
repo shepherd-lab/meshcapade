@@ -1,5 +1,5 @@
 const superagent = require("superagent")
-const fs = require("fs")
+const fs = require("fs-extra")
 const util = require("util")
 const exec = util.promisify(require("child_process").exec)
 const mkdirp = require("mkdirp")
@@ -78,12 +78,14 @@ class Meshcapade {
     }
     this.token = token
     this._batchFolderName = batchFolderName
+    this._batchName = getFileName(batchFolderName.replace(/\/$/, ""))
     this._jobId = getFileName(filePath)
     this._print(`If authorization expires you can get a new token here: ${this.loginUrl}`)
   }
 
   public token: string
   private _jobId: string
+  private _batchName: string
   private _batchFolderName: string
   public rootUrl = "https://api-eu.meshcapade.com/ganymede-beta"
   public loginUrl = "https://meshcapade.com/login/eu.html"
@@ -225,13 +227,35 @@ class Meshcapade {
     }
   }
 
+  async deleteLogsFolder() {
+    const folder = `${this._logsDir}${this._jobId}/`
+    if (folder.length < 30) throw new Error("Something went wrong.")
+    const trash = __dirname + `/trash/${this._batchName}/${this._jobId}`
+    console.log(`moving folder ${folder} to trash ${trash}`)
+    await fs.move(folder, trash)
+  }
+
+  static deletePending(batchFolderName: string) {
+    batchFolderName = batchFolderName.endsWith("/") ? batchFolderName.substr(0, batchFolderName.length - 1) : batchFolderName
+    const inputFolder = `${batchFolderName}/inputs`
+    const results = fs
+      .readdirSync(inputFolder)
+      .filter((filePath) => filePath.endsWith(".ply") || filePath.endsWith(".obj"))
+      .map(async (filePath) => {
+        const inputFilePath = `${inputFolder}/${filePath}`
+        const outPutFilePath = `${batchFolderName}/outputs/${filePath}.output.obj`
+        if (fs.existsSync(outPutFilePath)) return true
+        const session = new Meshcapade("", "noTokenNeeded", inputFilePath, batchFolderName)
+        await session.deleteLogsFolder()
+      })
+  }
+
   static async runBatch(batchFolderName: string, authorizationResponse: any) {
     batchFolderName = batchFolderName.endsWith("/") ? batchFolderName.substr(0, batchFolderName.length - 1) : batchFolderName
     const username = "SRLbodycomplab"
     const options = require(`${batchFolderName}/options`)
 
     const inputFolder = `${batchFolderName}/inputs`
-
     const results = fs
       .readdirSync(inputFolder)
       .filter((filePath) => filePath.endsWith(".ply"))
