@@ -16,7 +16,7 @@ This will install `n` and then the latest version of Node.js, as well as the TS-
 
 Once that is installed, clone this repo and then install the dependencies:
 
-    git clone https://github.com/breck7/meshcapade
+    git clone https://github.com/breckuh/meshcapade
     cd meshcapade
     npm install .
 
