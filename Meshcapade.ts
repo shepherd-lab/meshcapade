@@ -30,7 +30,6 @@ interface AlignmentOptions {
 declare type assetId = string
 declare type alignmentId = string
 declare type objectFile = any
-declare type username = string
 declare type token = string
 declare type filePath = string
 declare type url = string
@@ -72,7 +71,7 @@ interface StatusResponse {
 }
 
 class Meshcapade {
-  constructor(username: username, token: token, filePath: string, batchFolderName: string) {
+  constructor(token: token, filePath: string, batchFolderName: string) {
     if (!token) {
       throw new Error(`Get a token first from ${this.loginUrl}`)
     }
@@ -80,15 +79,17 @@ class Meshcapade {
     this._batchFolderName = batchFolderName
     this._batchName = getFileName(batchFolderName.replace(/\/$/, ""))
     this._jobId = getFileName(filePath)
-    this._print(`If authorization expires you can get a new token here: ${this.loginUrl}`)
   }
 
   public token: string
   private _jobId: string
   private _batchName: string
   private _batchFolderName: string
-  public rootUrl = "https://api-eu.meshcapade.com/ganymede-beta"
+
+  // public rootUrl = "https://api-eu.meshcapade.com/ganymede-beta"
+  public rootUrl = "https://api.ganymede.meshcapade.com/ganymede"
   public loginUrl = "https://meshcapade.com/login/eu.html"
+
   private verbose = true
   private _logging = true
   _print(message) {
@@ -158,16 +159,21 @@ class Meshcapade {
 
   async checkStatus(assetId: assetId, sub_id: string): Promise<StatusResponse> {
     this._print(`Checking Status`)
-    const res = await this._get(`/asset/${assetId}/${sub_id}`, `checkStatus`)
-    const parsed = JSON.parse(res.text)
-    if (parsed.state === "error") throw new Error(`Error: checkStatus: ${parsed.message}`)
-    return parsed
+    try {
+      const res = await this._get(`/asset/${assetId}/${sub_id}`, `checkStatus`)
+      const parsed = JSON.parse(res.text)
+      if (parsed.state === "error") throw new Error(`Error: checkStatus: ${parsed.message}`)
+      return parsed
+    } catch (err) {
+      console.log(err)
+    }
   }
 
   async downloadResult(url: url, outputFilePath: filePath) {
     this._print(`Downloading '${url}'`)
     const command = `curl -sXGET "${url}" >> ${outputFilePath}`
     const { stdout, stderr } = await exec(command)
+    console.log("Download success!")
     if (this._logging) this._log("downloadResult", { GET: url, FILE: url, stderr, stdout })
     return {}
   }
@@ -231,6 +237,11 @@ class Meshcapade {
     const folder = `${this._logsDir}${this._jobId}/`
     if (folder.length < 30) throw new Error("Something went wrong.")
     const trash = __dirname + `/trash/${this._batchName}/${this._jobId}`
+    if (fs.existsSync(trash)) {
+      console.log(`trash exists deleting ${folder}`)
+      await fs.remove(folder)
+      return
+    }
     console.log(`moving folder ${folder} to trash ${trash}`)
     await fs.move(folder, trash)
   }
@@ -245,39 +256,40 @@ class Meshcapade {
         const inputFilePath = `${inputFolder}/${filePath}`
         const outPutFilePath = `${batchFolderName}/outputs/${filePath}.output.obj`
         if (fs.existsSync(outPutFilePath)) return true
-        const session = new Meshcapade("", "noTokenNeeded", inputFilePath, batchFolderName)
+        const session = new Meshcapade("noTokenNeeded", inputFilePath, batchFolderName)
         await session.deleteLogsFolder()
       })
   }
 
   static async runBatch(batchFolderName: string, authorizationResponse: any) {
     batchFolderName = batchFolderName.endsWith("/") ? batchFolderName.substr(0, batchFolderName.length - 1) : batchFolderName
-    const username = "SRLbodycomplab"
     const options = require(`${batchFolderName}/options`)
 
     const inputFolder = `${batchFolderName}/inputs`
     const results = fs
       .readdirSync(inputFolder)
-      .filter((filePath) => filePath.endsWith(".ply"))
+      .filter((filePath) => filePath.endsWith(".ply") || filePath.endsWith(".obj"))
       .map((filePath) => {
         const inputFilePath = `${inputFolder}/${filePath}`
         const outPutFilePath = `${batchFolderName}/outputs/${filePath}.output.obj`
-        const session = new Meshcapade(username, authorizationResponse.token, inputFilePath, batchFolderName)
+        const session = new Meshcapade(authorizationResponse.token, inputFilePath, batchFolderName)
         return session.checkExistingJobOrStartNewAlignment(inputFilePath, outPutFilePath, options)
       })
 
     await Promise.all(results)
-    Meshcapade.concatOutputFiles(`${batchFolderName}`, "results.json")
+    Meshcapade.concatOutputFiles(batchFolderName)
   }
 
-  static concatOutputFiles(folder: filePath, destination: filePath) {
-    const rows = readDir(folder)
+  static concatOutputFiles(batchFolder: filePath) {
+    const outputFolder = batchFolder + "/outputs/"
+    const destination = batchFolder + "/results.json"
+    const rows = readDir(outputFolder)
       .filter((file) => file.endsWith(".json"))
       .map((fileName) => {
         let obj
         const id = fileName.replace(".output.obj.info.json", "")
         try {
-          obj = JSON.parse(read(folder + fileName))
+          obj = JSON.parse(read(outputFolder + fileName))
           const newObj = obj.body_measurements.measurements
           newObj.id = id
           newObj.gender = obj.body_measurements.gender

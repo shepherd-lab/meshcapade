@@ -1,5 +1,7 @@
 #!/usr/bin/env ts-node
 
+// todo: build a CLI client that takes options. For now just easier to update this script to run new batches.
+
 const fs = require("fs")
 const { Meshcapade } = require("./Meshcapade")
 
