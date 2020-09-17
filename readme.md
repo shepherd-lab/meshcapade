@@ -26,6 +26,9 @@ Then you should be ready to Mesh!
 
 1. Visit the login URL: https://meshcapade.com/login/eu.html
 2. Login and then copy/paste the authorization response into `authorizationResponse.json`.
-3. Put all your `obj` files in the "inputs/" folder.
-4. Adjust any parameter settings in `options.json`.
-5. Then run `./runOnInputsFolder.ts`
+3. Create a folder for your batch like "batches/females/".
+4. Create an "inputs" folder in that batch folder like "batches/females/inputs". Put your raw mesh files in there.
+5. Put an "options.json" file in your batch folder like "batches/females/options.json"
+6. Update the file `runBatch.ts` to point to your batch folder
+7. Run `./runBatch.ts` on the command line.
+
