@@ -1,8 +1,6 @@
 lib/
 node_modules/
 ignore/
-inputs/*.obj
-outputs/*.obj
 batches/
-logs/
 trash/
+
