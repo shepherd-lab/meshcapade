@@ -1,10 +1,30 @@
 # Meshcapade TypeScript Package
 
-### Install Instructions
+### Introduction
 
-This package uses NodeJS.
+Use this code to batch repose 3D "obj" or "ply" mesh files via Meshcapade. All files in an "inputs" folder will be reposed and output into an "outputs" folder according to options specified in an "options.json" file. To perform reposing it is necessary to have access to token credentials provided from Meshcapade.
 
-If you don't have Node, the recommended way of installing it is with the `n` Node Version Manager: https://github.com/tj/n.
+This package uses NodeJS and TypeScript. If you don't have Node with the TS-Node (TypeScript) package follow the install instructions for either Windows or Linux below.
+
+
+### Windows install instructions
+
+Download and run the Node.js software installer for Windows from the website (https://nodejs.org/en/download/).
+
+After installation launch the "Node.js command prompt".
+
+From that command prompt use Node package manager (npm) to install required packages using the following commands:
+
+    npm install -g typescript
+    npm install -g ts-node
+    npm install mkdirp
+
+You are now ready to use the package (see "Using" instructions below) from the "Node.js command prompt".
+
+
+### Linux install instructions
+
+The recommended way of installing Node is with the `n` Node Version Manager: https://github.com/tj/n.
 
 This will install `n` and then the latest version of Node.js, as well as the TS-Node package.
 
@@ -16,19 +36,20 @@ This will install `n` and then the latest version of Node.js, as well as the TS-
 
 Once that is installed, clone this repo and then install the dependencies:
 
-    git clone https://github.com/breckuh/meshcapade
+    git clone https://github.com/breckuh/meshcapade # Or https://github.com/shepherd-lab/meshcapade.git
     cd meshcapade
     npm install .
 
-Then you should be ready to Mesh!
+You are now ready to use the package (see "Using" instructions below).
+
 
 ### Using this package
 
-1. Visit the login URL: https://meshcapade.com/login/eu.html
-2. Login and then copy/paste the authorization response into `authorizationResponse.json`.
+1. Open a web browser to this URL: https://api.ganymede.meshcapade.com/ganymede/login.html
+2. Login and then copy/replace the authorization response (all text) into an `authorizationResponse.json` file locally.
 3. Create a folder for your batch like "batches/females/".
-4. Create an "inputs" folder in that batch folder like "batches/females/inputs". Put your raw mesh files in there.
-5. Put an "options.json" file in your batch folder like "batches/females/options.json"
-6. Update the file `runBatch.ts` to point to your batch folder
-7. Run `./runBatch.ts` on the command line.
-
+4. Create "inputs", "outputs", and "logs" folder in that batch folder like "batches/females/inputs". Put your raw mesh files (e.g., my_mesh.obj) in there.
+5. Put an "options.json" file in your batch folder like "batches/females/options.json".
+6. Update the file `runBatch.ts` to point to your batch folder.
+7. Run `node ./runBatch.ts` from the Node.js command line.
+8. Look for results in an "outputs" folder. If processing appears to stop your credentials may have expired. Create a fresh `authorizationResponse.json` file and re-launch the same `runBatch.ts` code. The code should search your "logs" folder for pending jobs that can still be downloaded from Meshcapade if ready.
