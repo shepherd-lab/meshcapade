@@ -12,6 +12,6 @@ const authorizationResponse = require("./authorizationResponse")
 // Meshcapade.runBatch(`${__dirname}/batches/astro/`, authorizationResponse)
 // Meshcapade.runBatch(`${__dirname}/batches/v1bMales/`, authorizationResponse)
 
-// This version uses the "inputs/" and "outputs/" folders here, but could be specified.
-Meshcapade.runBatch(`${__dirname}/`, authorizationResponse)
+// This version uses folders within "test_folder":
+Meshcapade.runBatch(`${__dirname}/test_folder`, authorizationResponse)
 
