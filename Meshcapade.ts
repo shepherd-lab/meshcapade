@@ -87,8 +87,9 @@ class Meshcapade {
   private _batchFolderName: string
 
   // public rootUrl = "https://api-eu.meshcapade.com/ganymede-beta"
+  // public loginUrl = "https://meshcapade.com/login/eu.html"
   public rootUrl = "https://api.ganymede.meshcapade.com/ganymede"
-  public loginUrl = "https://meshcapade.com/login/eu.html"
+  public loginUrl = "https://api.ganymede.meshcapade.com/ganymede/login.html"
 
   private verbose = true
   private _logging = true
