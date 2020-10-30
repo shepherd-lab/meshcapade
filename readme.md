@@ -15,9 +15,9 @@ After installation launch the "Node.js command prompt".
 
 From that command prompt use Node package manager (npm) to install required packages using the following commands:
 
-    npm install typescript
-    npm install ts-node
-    npm install mkdirp
+    npm install -g typescript
+    npm install -g ts-node
+    npm install -g mkdirp
 
 You are now ready to use the package (see "Using" instructions below) from the "Node.js command prompt".
 
@@ -53,3 +53,8 @@ You are now ready to use the package (see "Using" instructions below).
 6. Update the file `runBatch.ts` to point to your batch folder.
 7. Run `ts-node ./runBatch.ts` from the Node.js command line.
 8. Look for results in an "outputs" folder. If processing appears to stop your credentials may have expired. Create a fresh `authorizationResponse.json` file and re-launch the same `runBatch.ts` code. The code should search your "logs" folder for pending jobs that can still be downloaded from Meshcapade if ready.
+
+
+### Known issues
+* When >1 scans are present the first in the file list fails to be processed. One workaround is to create a temporary "aaDeleteMe.obj" that is at the top of the file list, and that should be deleted after initially calling `ts-node ./runBatch.ts`.
+* Circumference data will not initially be downloaded with the reposed scan. To get this data, keep all folders in the "logs" folder in place and just call `ts-node runBatch.ts` a second time after the reposed scans are downloaded. Results should be downloaded as files in the "outputs" folder ending "output.obj.info.json".

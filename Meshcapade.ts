@@ -5,7 +5,7 @@ const exec = util.promisify(require("child_process").exec)
 const mkdirp = require("mkdirp")
 
 const getFileName = (path: string) => {
-  const parts = path.split("/") // todo: change for windows?
+  const parts = path.split("/") // also works under Windows 10 "Node.js command prompt"
   return parts.pop()
 }
 
