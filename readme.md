@@ -19,6 +19,10 @@ From that command prompt use Node package manager (npm) to install required pack
     npm install -g ts-node
     npm install -g mkdirp
 
+NOTE: if you receive peer dependency warnings, you may need the following command:
+
+    npm install --save-dev @types/node
+
 You are now ready to use the package (see "Using" instructions below) from the "Node.js command prompt".
 
 
